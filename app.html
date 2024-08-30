@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lange="en">
+
+<head>
+
+</head>
+
+<body>
+    <select name="video_source" id="video_select">Select</select>
+    <video autoplay></video>
+    <img id="screenshot_img">
+    <button id="screenshot_button">SCREENSHOT</button>
+
+    <script>
+        //Make sure user's browser supports the getUserMedia
+        function hasGetUserMedia() {
+            return navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+        }
+        if (!hasGetUserMedia()) {
+            alert("getUserMedia() is not supported by your browser");
+        }
+
+        
+        //Let the user choose video source 
+        const video = document.querySelector("video");
+        const videoSelect = document.querySelector("select#video_select");
+
+        navigator.mediaDevices
+            .enumerateDevices()
+            .then(gotDevices)
+            .then(getStream)
+            .catch(handleError);
+
+        videoSelect.onchange = getStream;
+
+        function gotDevices(deviceInfos) {
+            //console.log("Avaialable devices: " + deviceInfos)
+            for (let i = 0; i < deviceInfos.length; ++i) {
+                const deviceInfo = deviceInfos[i];
+                const option = document.createElement("option");
+                option.value = deviceInfo.deviceId;
+                //console.log(deviceInfo.kind)
+                if (deviceInfo.kind === "videoinput") {
+                    if(deviceInfo.label == ""){
+                        option.text = "camera " + (videoSelect.length + 1)
+                    } else {
+                        option.text = deviceInfo.label
+                    }
+                    videoSelect.appendChild(option);
+                } 
+            }
+        }
+
+        function getStream() {
+            if (window.stream) {
+                window.stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+            }
+
+            const constraints = {
+                // video: {
+                //     deviceId: { exact: videoSelect.value },
+                // },
+                video: { width: { min: 1280 }, height: { min: 720 } },
+            };
+
+            navigator.mediaDevices
+                .getUserMedia(constraints)
+                .then(gotStream)
+                .catch(handleError);
+        }
+
+        function gotStream(stream) {
+            window.stream = stream; // make stream available to console
+            video.srcObject = stream;
+        }
+
+        function handleError(error) {
+            console.error("Error: ", error);
+        }
+
+        //Screenshot image 
+        const screenshotButton = document.querySelector("#screenshot_button");
+        const img = document.querySelector("#screenshot_img");
+        const canvas = document.createElement("canvas");
+
+        screenshotButton.addEventListener('click', function () {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            // Other browsers will fall back to image/png
+            img.src = canvas.toDataURL("image/webp");
+        })
+    </script>
+</body>
+
+</html>
